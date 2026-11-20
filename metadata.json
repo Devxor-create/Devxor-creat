@@ -1,0 +1,6 @@
+{
+  "name": "SpaceX AI",
+  "description": "All-in-one futuristic AI command center with Gemini intelligence, coding studio, creative media tools, and cloud-synced workspace.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

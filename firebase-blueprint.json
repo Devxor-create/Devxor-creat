@@ -1,0 +1,163 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile, onboarding state, and AI preferences for SpaceX AI.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "username": { "type": "string", "description": "Handle username" },
+        "bio": { "type": "string", "description": "Optional user biography" },
+        "email": { "type": "string", "description": "Google account email" },
+        "photoUrl": { "type": "string", "description": "Profile photo URL" },
+        "language": { "type": "string", "description": "Preferred AI language" },
+        "responseStyle": { "type": "string", "description": "Preferred AI response style" },
+        "customSystemPrompt": { "type": "string", "description": "Optional user-defined AI system prompt / persona instructions" },
+        "memoryEnabled": { "type": "boolean", "description": "Whether AI memory is active" },
+        "darkMode": { "type": "boolean", "description": "Dark theme preference" },
+        "selectedModel": { "type": "string", "description": "Default Gemini model ID" },
+        "onboardingCompleted": { "type": "boolean", "description": "Onboarding completion flag" },
+        "tier": { "type": "string", "enum": ["FREE", "PRO"], "description": "Account tier" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": [
+        "userId", "displayName", "username", "language", "responseStyle",
+        "memoryEnabled", "darkMode", "selectedModel", "onboardingCompleted",
+        "tier", "createdAt", "updatedAt"
+      ]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "AI chat conversation thread.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "projectId": { "type": "string" },
+        "modelId": { "type": "string" },
+        "pinned": { "type": "boolean" },
+        "archived": { "type": "boolean" },
+        "lastMessagePreview": { "type": "string" },
+        "messageCount": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId", "title", "modelId", "pinned", "archived",
+        "lastMessagePreview", "messageCount", "createdAt", "updatedAt"
+      ]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Message inside a conversation.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "text": { "type": "string" },
+        "modelId": { "type": "string" },
+        "feedback": { "type": "string", "enum": ["none", "like", "dislike"] },
+        "attachmentLabel": { "type": "string" },
+        "thinkingSummary": { "type": "string" },
+        "groundingSources": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "role", "text", "modelId", "feedback", "createdAt", "updatedAt"]
+    },
+    "AiProject": {
+      "title": "AiProject",
+      "description": "User workspace project with custom instructions.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "instructions": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "category", "instructions", "description", "createdAt", "updatedAt"]
+    },
+    "AiMemory": {
+      "title": "AiMemory",
+      "description": "User-approved personalization memory entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "content", "category", "createdAt", "updatedAt"]
+    },
+    "LibraryItem": {
+      "title": "LibraryItem",
+      "description": "Personal library item (note, code, website, game, document, saved response).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "folder": { "type": "string" },
+        "itemType": { "type": "string", "enum": ["note", "code", "website", "game", "conversation", "document", "image_prompt"] },
+        "content": { "type": "string" },
+        "language": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "folder", "itemType", "content", "language", "createdAt", "updatedAt"]
+    },
+    "StudioProject": {
+      "title": "StudioProject",
+      "description": "Code Studio, Website Builder, or Game Studio workspace project.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "studioType": { "type": "string", "enum": ["code", "website", "game"] },
+        "language": { "type": "string" },
+        "primaryCode": { "type": "string" },
+        "cssCode": { "type": "string" },
+        "jsCode": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "studioType", "language", "primaryCode", "cssCode", "jsCode", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile and preferences"
+    },
+    "/users/{userId}/conversations/{conversationId}": {
+      "schema": { "$ref": "#/entities/Conversation" },
+      "description": "User chat conversations"
+    },
+    "/users/{userId}/conversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Messages within a conversation"
+    },
+    "/users/{userId}/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/AiProject" },
+      "description": "User workspace projects"
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": { "$ref": "#/entities/AiMemory" },
+      "description": "User personalization memories"
+    },
+    "/users/{userId}/library_items/{itemId}": {
+      "schema": { "$ref": "#/entities/LibraryItem" },
+      "description": "User personal library items"
+    },
+    "/users/{userId}/studio_projects/{studioId}": {
+      "schema": { "$ref": "#/entities/StudioProject" },
+      "description": "User Code, Website, and Game Studio projects"
+    }
+  }
+}

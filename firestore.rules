@@ -1,0 +1,320 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.userId == userId &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+             data.username is string && data.username.size() >= 3 && data.username.size() <= 32 &&
+             data.language is string && data.language.size() >= 1 && data.language.size() <= 40 &&
+             data.responseStyle is string && data.responseStyle.size() >= 1 && data.responseStyle.size() <= 40 &&
+             data.memoryEnabled is bool &&
+             data.darkMode is bool &&
+             data.selectedModel is string && data.selectedModel.size() >= 1 && data.selectedModel.size() <= 80 &&
+             data.onboardingCompleted is bool &&
+             data.tier in ['FREE', 'PRO'] &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 300)) &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 120)) &&
+             (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500)) &&
+             (!('customSystemPrompt' in data) || (data.customSystemPrompt is string && data.customSystemPrompt.size() <= 2000)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidConversation(data, userId) {
+      return data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.modelId is string && data.modelId.size() >= 1 && data.modelId.size() <= 80 &&
+             data.pinned is bool &&
+             data.archived is bool &&
+             data.lastMessagePreview is string && data.lastMessagePreview.size() <= 300 &&
+             data.messageCount is int && data.messageCount >= 0 && data.messageCount <= 10000 &&
+             (!('projectId' in data) || (data.projectId is string && data.projectId.size() <= 128)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidChatMessage(data, userId) {
+      return data.userId == userId &&
+             data.role in ['user', 'model'] &&
+             data.text is string && data.text.size() <= 30000 &&
+             data.modelId is string && data.modelId.size() <= 80 &&
+             data.feedback in ['none', 'like', 'dislike'] &&
+             (!('attachmentLabel' in data) || (data.attachmentLabel is string && data.attachmentLabel.size() <= 120)) &&
+             (!('thinkingSummary' in data) || (data.thinkingSummary is string && data.thinkingSummary.size() <= 5000)) &&
+             (!('groundingSources' in data) || (data.groundingSources is list && data.groundingSources.size() <= 15 && (data.groundingSources.size() == 0 || data.groundingSources[0] is string))) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidAiProject(data, userId) {
+      return data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+             data.instructions is string && data.instructions.size() <= 4000 &&
+             data.description is string && data.description.size() <= 500 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidAiMemory(data, userId) {
+      return data.userId == userId &&
+             data.content is string && data.content.size() >= 1 && data.content.size() <= 500 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidLibraryItem(data, userId) {
+      return data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.folder is string && data.folder.size() >= 1 && data.folder.size() <= 60 &&
+             data.itemType in ['note', 'code', 'website', 'game', 'conversation', 'document', 'image_prompt'] &&
+             data.content is string && data.content.size() <= 100000 &&
+             data.language is string && data.language.size() <= 40 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidStudioProject(data, userId) {
+      return data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.studioType in ['code', 'website', 'game'] &&
+             data.language is string && data.language.size() >= 1 && data.language.size() <= 40 &&
+             data.primaryCode is string && data.primaryCode.size() <= 150000 &&
+             data.cssCode is string && data.cssCode.size() <= 100000 &&
+             data.jsCode is string && data.jsCode.size() <= 150000 &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'displayName', 'username', 'language', 'responseStyle',
+                         'memoryEnabled', 'darkMode', 'selectedModel', 'onboardingCompleted',
+                         'tier', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'displayName', 'username', 'bio', 'email', 'photoUrl',
+                         'language', 'responseStyle', 'customSystemPrompt', 'memoryEnabled',
+                         'darkMode', 'selectedModel', 'onboardingCompleted', 'tier', 'createdAt',
+                         'updatedAt'
+                       ]) &&
+                       incoming().tier == 'FREE' &&
+                       isValidUserProfile(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().tier == existing().tier &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'username', 'bio', 'photoUrl', 'language',
+                         'responseStyle', 'customSystemPrompt', 'memoryEnabled', 'darkMode',
+                         'selectedModel', 'onboardingCompleted', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /conversations/{conversationId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(conversationId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(conversationId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'title', 'modelId', 'pinned', 'archived',
+                           'lastMessagePreview', 'messageCount', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'title', 'projectId', 'modelId', 'pinned', 'archived',
+                           'lastMessagePreview', 'messageCount', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidConversation(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(conversationId) &&
+                         isValidConversation(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'projectId', 'modelId', 'pinned', 'archived',
+                           'lastMessagePreview', 'messageCount', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(conversationId);
+
+        match /messages/{messageId} {
+          allow get: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId);
+          allow list: if isOwner(userId);
+          allow create: if isOwner(userId) &&
+                           isValidId(userId) &&
+                           isValidId(conversationId) &&
+                           isValidId(messageId) &&
+                           incoming().keys().hasAll([
+                             'userId', 'role', 'text', 'modelId', 'feedback', 'createdAt', 'updatedAt'
+                           ]) &&
+                           incoming().keys().hasOnly([
+                             'userId', 'role', 'text', 'modelId', 'feedback', 'attachmentLabel',
+                             'thinkingSummary', 'groundingSources', 'createdAt', 'updatedAt'
+                           ]) &&
+                           isValidChatMessage(incoming(), userId);
+
+          allow update: if isOwner(userId) &&
+                           isValidId(userId) &&
+                           isValidId(conversationId) &&
+                           isValidId(messageId) &&
+                           isValidChatMessage(incoming(), userId) &&
+                           incoming().userId == existing().userId &&
+                           incoming().role == existing().role &&
+                           incoming().createdAt == existing().createdAt &&
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'text', 'modelId', 'feedback', 'thinkingSummary', 'groundingSources', 'updatedAt'
+                           ]);
+
+          allow delete: if isOwner(userId) && isValidId(userId) && isValidId(conversationId) && isValidId(messageId);
+        }
+      }
+
+      match /projects/{projectId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(projectId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(projectId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'name', 'category', 'instructions', 'description', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'name', 'category', 'instructions', 'description', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidAiProject(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(projectId) &&
+                         isValidAiProject(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'name', 'category', 'instructions', 'description', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(projectId);
+      }
+
+      match /memories/{memoryId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(memoryId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(memoryId) &&
+                         incoming().keys().hasAll(['userId', 'content', 'category', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'content', 'category', 'createdAt', 'updatedAt']) &&
+                         isValidAiMemory(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(memoryId) &&
+                         isValidAiMemory(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['content', 'category', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(memoryId);
+      }
+
+      match /library_items/{itemId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(itemId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(itemId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'title', 'folder', 'itemType', 'content', 'language', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'title', 'folder', 'itemType', 'content', 'language', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidLibraryItem(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(itemId) &&
+                         isValidLibraryItem(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'folder', 'itemType', 'content', 'language', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(itemId);
+      }
+
+      match /studio_projects/{studioId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(studioId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(studioId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'name', 'studioType', 'language', 'primaryCode',
+                           'cssCode', 'jsCode', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'name', 'studioType', 'language', 'primaryCode',
+                           'cssCode', 'jsCode', 'notes', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidStudioProject(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(studioId) &&
+                         isValidStudioProject(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'name', 'studioType', 'language', 'primaryCode', 'cssCode', 'jsCode', 'notes', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(studioId);
+      }
+    }
+  }
+}

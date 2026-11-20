@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">SpaceX AI</string>
+    <string name="hero_tagline">One platform. Endless possibilities.</string>
+    <string name="chat_headline">What\'s on your mind today?</string>
+    <string name="sign_in_google">Continue with Google</string>
+    <string name="auth_error_missing_client_id">Google Sign-In configuration missing.</string>
+    <string name="error_generic_ai">AI request failed. Please try again.</string>
+    <string name="error_timeout_ai">Generation timed out. Please retry with a shorter prompt.</string>
+</resources>
